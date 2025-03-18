@@ -153,22 +153,20 @@ sig Exec {
   // inverse) and add the identity over R+W
   sref = ^(rai[pgmsref]) + stor[R+W]
 
-  // AVDEVICE operation applies to all operations that are ordered before
+  // AVDEVICE operation applies to all writes that are ordered before
   // the current operation, but not to the current operation itself.
-  // VISDEVICE operation applies to all operations that are ordered after
+  // VISDEVICE operation applies to all reads that are ordered after
   // the current operation, but not to the current operation itself.
-  // SEMAV operation with SEMSCi applies to all operations in SCi that are ordered before
+  // SEMAV operation with SEMSCi applies to all writes in SCi that are ordered before
   // the current operation, but not to the current operation itself.
-  // SEMVIS operation with SEMSCi applies to all operations in SCi that are ordered after
+  // SEMVIS operation with SEMSCi applies to all reads in SCi that are ordered after
   // the current operation, but not to the current operation itself.
-  // AV+VIS ops (per-instruction) are avvisinc with themselves (av/vis op happens in the right order)
-  // and with those operations on the same reference.
-  // Note that this complexity exists in part because we don't split out implicit av/vis
-  // ops as distinct instructions.
-  avvisinc = ((SC0+SC1)->AVDEVICE) + (VISDEVICE->(SC0+SC1)) +
-             (SC0->(SEMSC0&SEMAV)) + ((SEMSC0&SEMVIS)->SC0) +
-             (SC1->(SEMSC1&SEMAV)) + ((SEMSC1&SEMVIS)->SC1) +
-             (rai[stor[AV+VIS] . (sref & sloc)])
+  // AV operation applies to the current operation itself and writes to the same reference.
+  // VIS operation applies to the current operation itself and reads from the same reference.
+  avvisinc = ((W)->AVDEVICE) + (VISDEVICE->(R)) +
+             ((W&SC0)->(SEMSC0&SEMAV)) + ((SEMSC0&SEMVIS)->(R&SC0)) +
+             ((W&SC1)->(SEMSC1&SEMAV)) + ((SEMSC1&SEMVIS)->(R&SC1)) +
+             ((stor[W]) . (sref & sloc) . (stor[AV])) + ((stor[VIS]) . (sref & sloc) . (stor[R]))
 
   // same thread is a subset of same subgroup which is a subset of same workgroup
   sthd in ssg
