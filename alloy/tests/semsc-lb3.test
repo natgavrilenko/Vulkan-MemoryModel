@@ -1,0 +1,15 @@
+NEWWG
+NEWSG
+NEWTHREAD
+ld.atom.acq.scopedev.sc0.semsc1 x = 1
+st.sc1 a = 1
+st.atom.rel.scopedev.sc0.semsc1 y = 1
+NEWWG
+NEWSG
+NEWTHREAD
+ld.atom.acq.scopedev.sc0.semsc1 y = 1
+st.sc1 b = 1
+st.atom.rel.scopedev.sc0.semsc1 x = 1
+// Original, sc-to-semsc, fence-to-semcs models: safe
+// Nonpriv restriction: unsafe
+SATISFIABLE consistent[X]

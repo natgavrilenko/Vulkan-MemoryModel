@@ -1,0 +1,14 @@
+NEWWG
+NEWSG
+NEWTHREAD
+membar.rel.scopedev.semsc1
+st.atom.rel.scopedev.sc0.semsc0 x = 1
+st.atom.rel.scopedev.sc0.semsc1 y = 1
+NEWWG
+NEWSG
+NEWTHREAD
+ld.atom.acq.scopedev.sc0.semsc1 y = 1
+ld.atom.acq.scopedev.sc0.semsc0 x = 0
+membar.acq.scopedev.semsc1
+// Unsafe (all model versions)
+SATISFIABLE consistent[X]

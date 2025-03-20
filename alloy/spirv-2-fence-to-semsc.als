@@ -59,7 +59,6 @@ sig Exec {
   W, R, F : set E, // write, read, fence
   A, ACQ, REL: set E, // atomic, acquire, release
   SC0, SC1 : set E, // storage classes 0 and 1
-  NSC0, NSC1 : set E, // storage classes 0 and 1 via NONPRIV access
   SEMSC0, SEMSC1, SEMSC01 : set E, // storage class semantics 0, 1, 0 and 1
   SCOPESG, SCOPEWG, SCOPEQF, SCOPEDEV : set E, // subgroup/workgroup/queuefamily/device scopes
   CBAR : set E, // control barrier
@@ -154,9 +153,6 @@ sig Exec {
   // inverse) and add the identity over R+W
   sref = ^(rai[pgmsref]) + stor[R+W]
 
-  NSC0 = SC0&NONPRIV
-  NSC1 = SC1&NONPRIV
-
   // AVDEVICE operation applies to all writes that are ordered before
   // the current operation, but not to the current operation itself.
   // VISDEVICE operation applies to all reads that are ordered after
@@ -168,8 +164,8 @@ sig Exec {
   // AV operation applies to the current operation itself and writes to the same reference.
   // VIS operation applies to the current operation itself and reads from the same reference.
   avvisinc = ((W)->AVDEVICE) + (VISDEVICE->(R)) +
-             ((W&NSC0)->(SEMSC0&SEMAV)) + ((SEMSC0&SEMVIS)->(R&NSC0)) +
-             ((W&NSC1)->(SEMSC1&SEMAV)) + ((SEMSC1&SEMVIS)->(R&NSC1)) +
+             ((W&SC0)->(SEMSC0&SEMAV)) + ((SEMSC0&SEMVIS)->(R&SC0)) +
+             ((W&SC1)->(SEMSC1&SEMAV)) + ((SEMSC1&SEMVIS)->(R&SC1)) +
              ((stor[W]) . (sref & sloc) . (stor[AV])) + ((stor[VIS]) . (sref & sloc) . (stor[R]))
 
   // same thread is a subset of same subgroup which is a subset of same workgroup
@@ -294,8 +290,8 @@ sig Exec {
   // mutually ordered atomics are to the same location and same reference and in scope
   mutordatom = (sloc & sref & (A -> A) & inscope) - iden
 
-  posctosem = po & ((NSC0 -> SEMSC0) + (NSC1 -> SEMSC1))
-  posemtosc = po & ((SEMSC0 -> NSC0) + (SEMSC1 -> NSC1))
+  posctosem = po & ((SC0 -> SEMSC0) + (SC1 -> SEMSC1))
+  posemtosc = po & ((SEMSC0 -> SC0) + (SEMSC1 -> SC1))
 
   // A's scoped modification order:
   // - must be a strict partial order
@@ -334,18 +330,18 @@ sig Exec {
 
   ithbsemsc0 = ^(ssw +
                  (stor[SEMSC0]).sw.(stor[SEMSC0]) +
-                 (stor[NSC0+(F&SEMSC0)]).po.(stor[REL&SEMSC0]) +
-                 (stor[ACQ&SEMSC0]).po.(stor[NSC0+(F&SEMSC0)]))
+                 (stor[SC0+(F&SEMSC0)]).po.(stor[REL&SEMSC0]) +
+                 (stor[ACQ&SEMSC0]).po.(stor[SC0+(F&SEMSC0)]))
 
   ithbsemsc1 = ^(ssw +
                  (stor[SEMSC1]).sw.(stor[SEMSC1]) +
-                 (stor[NSC1+(F&SEMSC1)]).po.(stor[REL&SEMSC1]) +
-                 (stor[ACQ&SEMSC1]).po.(stor[NSC1+(F&SEMSC1)]))
+                 (stor[SC1+(F&SEMSC1)]).po.(stor[REL&SEMSC1]) +
+                 (stor[ACQ&SEMSC1]).po.(stor[SC1+(F&SEMSC1)]))
 
   ithbsemsc01 = ^(ssw +
                   (stor[SEMSC01]).sw.(stor[SEMSC01]) +
-                  (stor[NSC0+NSC1+(F&(SEMSC0+SEMSC1))]).po.(stor[REL&SEMSC01]) +
-                  (stor[ACQ&SEMSC01]).po.(stor[NSC0+NSC1+(F&(SEMSC0+SEMSC1))]))
+                  (stor[SC0+SC1+(F&(SEMSC0+SEMSC1))]).po.(stor[REL&SEMSC01]) +
+                  (stor[ACQ&SEMSC01]).po.(stor[SC0+SC1+(F&(SEMSC0+SEMSC1))]))
 
   // happens-before = ithb<SC> or program order
   hb = ithbsemsc0 + ithbsemsc1 + ithbsemsc01 + po

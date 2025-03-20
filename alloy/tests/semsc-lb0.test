@@ -1,0 +1,12 @@
+NEWWG
+NEWSG
+NEWTHREAD
+ld.atom.acq.scopedev.sc0.semsc0 x = 1
+st.atom.rel.scopedev.sc0.semsc0 y = 1
+NEWWG
+NEWSG
+NEWTHREAD
+ld.atom.acq.scopedev.sc0.semsc0 y = 1
+st.atom.rel.scopedev.sc0.semsc0 x = 1
+// Safe (all models)
+NOSOLUTION consistent[X]
