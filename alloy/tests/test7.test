@@ -11,15 +11,15 @@ cbar.acq.rel.scopewg.semsc0 0
 NEWSG
 NEWTHREAD
 cbar.acq.rel.scopewg.semsc0 0
-cbar.acq.rel.scopedev.semsc1 1
+st.atom.rel.scopedev.sc0.semsc1 y = 1
 NEWWG
 NEWSG
 NEWTHREAD
-cbar.acq.rel.scopedev.semsc1 1
-cbar.acq.rel.scopewg.semsc0 2
+ld.atom.acq.scopedev.sc0.semsc1 y = 1
+cbar.acq.rel.scopewg.semsc0 1
 NEWSG
 NEWTHREAD
-cbar.acq.rel.scopewg.semsc0 2
+cbar.acq.rel.scopewg.semsc0 1
 ld.vis.scopedev.sc0 a
 NOSOLUTION consistent[X] && #dr=0
 SATISFIABLE consistent[X] && #dr>0

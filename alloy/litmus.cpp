@@ -116,11 +116,12 @@ using namespace std;
 // instances.
 class LoadStore {
 public:
-    LoadStore() : var(), value(-1), value2(-1), cbarInstance(-1) {}
+    LoadStore() : var(), value(-1), value2(-1), cbarInstance(-1), workgroup(-1) {}
     string var;
     int value;
     int value2;
     int cbarInstance;
+    int workgroup;
 };
 
 // Track what instruction fields are set for each instruction.
@@ -141,14 +142,14 @@ public:
     int getReadValue(int instnum) const
     {
         if (!isRead(instnum)) {
-            printf("WARNING: calling getReadValue on a non-read");
+            printf("WARNING: calling getReadValue on a non-read\n");
         }
         return loadStore[instnum].value;
     }
     int getWriteValue(int instnum) const
     {
         if (!isWrite(instnum)) {
-            printf("WARNING: calling getWriteValue on a non-write");
+            printf("WARNING: calling getWriteValue on a non-write\n");
         }
         return (isRead(instnum) && isWrite(instnum)) ? loadStore[instnum].value2 : loadStore[instnum].value;
     }
@@ -340,6 +341,7 @@ int main(int argc, char *argv[])
 
     stringstream o;
 
+    int workgroupnum = 0;
     int threadnum = 0;
     int numEvents = 0;
     int bitwidth = 0;
@@ -390,6 +392,7 @@ int main(int argc, char *argv[])
                 o << "    no ("; sequenceInSuffix(o, 0, instnum+1, true, ") & X.swg");
                 firstInstInWG = instnum+1;
             }
+            workgroupnum++;
             continue;
         }
 
@@ -452,6 +455,7 @@ int main(int argc, char *argv[])
                 line = line.substr(firstspace);
                 line = line.substr(line.find_first_not_of(" "));
                 instState.loadStore[instnum].cbarInstance = atoi(line.c_str());
+                instState.loadStore[instnum].workgroup = workgroupnum;
             } else {
                 line = line.substr(firstspace);
                 line = line.substr(line.find_first_not_of(" ="));
@@ -602,12 +606,16 @@ int main(int argc, char *argv[])
     set<int> cbarInsts;
     for (int j = 0; j <= instnum; ++j) {
         int v = instState.loadStore[j].cbarInstance;
+        int w = instState.loadStore[j].workgroup;
         if (v != -1 && cbarInsts.find(v) == cbarInsts.end()) {
             cbarInsts.insert(v);
             o << "    ";
             bool first = true;
             for (int i = j+1; i <= instnum; ++i) {
                 if (instState.loadStore[i].cbarInstance == v) {
+                    if (instState.loadStore[i].workgroup != w) {
+                        printf("WARNING: matching control barriers in different workgroups\n");
+                    }
                     if (!first) {
                         o << "+";
                     }
