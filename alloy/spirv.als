@@ -98,8 +98,10 @@ sig Exec {
   // dynamic relations established at runtime
   rf : E->E, // reads-from
   asmo: E->E, // A's scoped modification order
-  rs : E->E, // release sequence
-  hypors : E->E, // hypothetical release sequence
+  rels : E->E, // release sequence
+  acqs : E->E, // acquire sequence
+  swra : E->E, // synchronizes-with-release-acquire
+  swbar : E->E, // synchronizes-with-barriers
   fr: E->E, // from-read
   sw: E->E, // synchronizes-with
   ithbsemsc0 : E->E, // inter-thread-happens-before (templated by storage class mask)
@@ -306,23 +308,12 @@ sig Exec {
   // same-thread-atomic-write aspect of release sequences. hypors is the same
   // for "hypothetical release sequences" where the release happens in a fence
   // earlier in the same invocation.
-  rs = (stor[REL&A]) . *((imm[asmo]) . (stor[R&W]))
-  hypors = (stor[W&A]) . *((imm[asmo]) . (stor[R&W]))
-
   // synchronizes-with is similar to C++, with an additional case for fence->cbar->cbar->fence
-  sw = inscope & (
-       // atomic->atomic
-       ((stor[REL&A]) . rs . (rf & mutordatom) . (stor[ACQ&A])) +
-       // fence->atomic
-       ((stor[REL&F]) . posemtosc . (stor[A&W]) . hypors . (rf & mutordatom) . (stor[ACQ&A])) +
-       // atomic->fence
-       ((stor[REL&A]) . rs . (rf & mutordatom) . (stor[A&R]) . posctosem . (stor[ACQ&F])) +
-       // fence->fence
-       ((stor[REL&F]) . posemtosc . (stor[A&W]) . hypors . (rf & mutordatom) . (stor[A&R]) . posctosem . (stor[ACQ&F])) +
-       // fence->cbar->cbar->fence
-       // (stor[CBAR]) terms are redundant because scbarinst is an equivalence relation on scbarinst,
-       // but they make the sequence of instructions more clear.
-       ((stor[REL&F]) . (rc[po]) . (stor[CBAR]) . (scbarinst & inscope - iden) . (stor[CBAR]) . (rc[po]) . (stor[ACQ&F])))
+  rels = (((stor[REL&F]) . posemtosc . (stor[W&A])) + (stor[REL&A])) . *((imm[asmo]) . (stor[R&W]))
+  acqs = (stor[ACQ&A]) + ((stor[A&R]) . posctosem . (stor[ACQ&F]))
+  swra = rels . (rf & mutordatom) . acqs
+  swbar = (stor[REL&F]) . (rc[po]) . (scbarinst & inscope - iden) . (rc[po]) . (stor[ACQ&F])
+  sw = inscope & (swra + swbar)
 
   // inter-thread-happens-before =
   //   system-synchronizes-with

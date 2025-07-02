@@ -13,4 +13,4 @@ NEWTHREAD
 st.ld.atom.scopewg.sc0 y = 2 3
 SATISFIABLE consistent[X] && #dr=0
 // With simplified release sequences, only the release itself is in the release sequence
-NOSOLUTION consistent[X] && (#rs>1)
+NOSOLUTION consistent[X] && (#rels>1)

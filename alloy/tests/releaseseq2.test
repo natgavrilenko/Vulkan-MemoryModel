@@ -13,4 +13,4 @@ NEWTHREAD
 rmw.scopewg.sc0 y = 1 2
 SATISFIABLE consistent[X] && #dr=0
 // the release and the RMW are in the release sequence
-SATISFIABLE consistent[X] && (#rs=2)
+SATISFIABLE consistent[X] && (#rels=2)
