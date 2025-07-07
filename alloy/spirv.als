@@ -355,14 +355,14 @@ sig Exec {
   // is not supported by ANDing with the identity relation.
   avsg = stor[AVSG]
   avwg = (chains & (rc[avsg . (hb & ssg & avvisinc)])) . (stor[AVWG])
-  avqf = (chains & (rc[avsg . (hb & ssg & avvisinc)]) . (rc[avwg . (hb & swg & avvisinc)])) . (stor[AVQF])
-  avsh = (chains & (rc[avsg . (hb & ssg & avvisinc)]) . (rc[avwg . (hb & swg & avvisinc)]) . (rc[avqf . (hb & sqf & avvisinc)])) . (stor[AVSHADER])
+  avqf = (chains & ((rc[avsg . (hb & ssg & avvisinc)]) + (rc[avwg . (hb & swg & avvisinc)]))) . (stor[AVQF])
+  avsh = (chains & ((rc[avsg . (hb & ssg & avvisinc)]) + (rc[avwg . (hb & swg & avvisinc)]) + (rc[avqf . (hb & sqf & avvisinc)]))) . (stor[AVSHADER])
   avdv = stor[AVDEVICE]
 
   vissg = stor[VISSG]
   viswg = (stor[VISWG])     . (chains & (rc[(hb & ssg & avvisinc) . vissg]))
-  visqf = (stor[VISQF])     . (chains & (rc[(hb & swg & avvisinc) . viswg]) . (rc[(hb & ssg & avvisinc) . vissg]))
-  vissh = (stor[VISSHADER]) . (chains & (rc[(hb & sqf & avvisinc) . visqf]) . (rc[(hb & swg & avvisinc) . viswg]) . (rc[(hb & ssg & avvisinc) . vissg]))
+  visqf = (stor[VISQF])     . (chains & ((rc[(hb & swg & avvisinc) . viswg]) + (rc[(hb & ssg & avvisinc) . vissg])))
+  vissh = (stor[VISSHADER]) . (chains & ((rc[(hb & sqf & avvisinc) . visqf]) + (rc[(hb & swg & avvisinc) . viswg]) + (rc[(hb & ssg & avvisinc) . vissg])))
   visdv = stor[VISDEVICE]
 
   locord = sloc & // relates memory accesses to the same location
