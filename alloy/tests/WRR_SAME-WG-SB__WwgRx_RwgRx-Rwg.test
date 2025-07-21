@@ -10,5 +10,5 @@ NEWSG
 NEWTHREAD
 ld.atom.scopewg.sc0 x = 1
 ld.vis.scopewg.sc0 x
-SATISFIABLE consistent[X] && #dr>0
-NOSOLUTION consistent[X] && #dr=0
+SATISFIABLE consistent[X] && #dr=0
+NOSOLUTION consistent[X] && #dr>0

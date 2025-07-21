@@ -101,6 +101,7 @@ sig Exec {
   rs : E->E, // release sequence
   hypors : E->E, // hypothetical release sequence
   fr: E->E, // from-read
+  obs: E->E, // observation
   sw: E->E, // synchronizes-with
   ithbsemsc0 : E->E, // inter-thread-happens-before (templated by storage class mask)
   ithbsemsc1 : E->E,
@@ -300,6 +301,7 @@ sig Exec {
   // - must relate all mutually ordered atomic writes at the same location
   strict_partial_order[asmo]
   rai[asmo] = ((A&W) -> (A&W)) & mutordatom
+  obs = rf & mutordatom
 
   // Release sequence starts with an atomic release followed by the reflexive
   // transitive closure of immediate asmo limited to RMWs. Leaving out C++'s
@@ -346,7 +348,7 @@ sig Exec {
                   (stor[ACQ&SEMSC01]).po.(stor[SC0+SC1+SEMSC01]))
 
   // happens-before = ithb<SC> or program order
-  hb = ithbsemsc0 + ithbsemsc1 + ithbsemsc01 + po
+  hb = ((rc[obs]) . (ithbsemsc0 + ithbsemsc1 + ithbsemsc01)) + obs + po
 
   // Chains of instructions that produce the desired availability/visibility.
   // Example: An AVWG that happens before an AVSH in the same workgroup is
