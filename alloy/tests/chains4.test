@@ -5,19 +5,19 @@
 NEWQF
 NEWWG
 NEWSG
-NEWTHREAD 0
+NEWTHREAD
 st.atom.rel.scopesg.sc0.semsc0 a = 1
-NEWTHREAD 1
+NEWTHREAD
 ld.atom.acq.scopesg.sc0.semsc0 a = 1
 st.atom.rel.scopewg.sc1.semsc0.semsc1.semav b = 1
 NEWSG
-NEWTHREAD 2
+NEWTHREAD
 ld.atom.acq.scopewg.sc1.semsc1 b = 1
 st.atom.rel.scopedev.sc0.semsc0.semsc1.semav c = 1
 NEWQF
 NEWWG
 NEWSG
-NEWTHREAD 3
+NEWTHREAD
 ld.atom.acq.scopedev.sc0.semsc0 c = 1
 ld.atom.scopedev.sc0 a = 0
 
