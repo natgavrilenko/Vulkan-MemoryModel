@@ -1,0 +1,12 @@
+NEWWG
+NEWSG
+NEWTHREAD 0
+st.nonpriv.sc0 v0 = 2
+st.atom.rel.sc0.scopeqf.semsc1 v0 = 1
+NEWWG
+NEWSG
+NEWTHREAD 1
+ld.atom.acq.sc0.scopeqf.semsc1 v0 = 1
+
+SATISFIABLE consistent[X]
+NOSOLUTION consistent[X] && #dr>0
