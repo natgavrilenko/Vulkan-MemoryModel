@@ -51,8 +51,12 @@
 // "rel" - release semantics (can use both acq and rel with membar/cbar)
 // "sc0" - storage class 0
 // "sc1" - storage class 1
+// "sc2" - storage class 2
+// "sc3" - storage class 3
 // "semsc0" - storage class 0 in semantics
 // "semsc1" - storage class 1 in semantics
+// "semsc2" - storage class 2 in semantics
+// "semsc3" - storage class 3 in semantics
 // "scopesg" - Subgroup scope (for atomics/barriers)
 // "scopewg" - Workgroup scope (for atomics/barriers)
 // "scopeqf" - QueueFamily scope (for atomics/barriers)
@@ -129,7 +133,7 @@ public:
 
     InstructionState() : loadStore(100), threads(100) {}
 
-    set<int> W, R, F, A, ACQ, REL, SC0, SC1, SEMSC0, SEMSC1, SCOPESG, SCOPEWG, SCOPEQF, SCOPEDEV, CBAR, AVDEVICE, VISDEVICE, SEMAV, SEMVIS, AV, VIS, NONPRIV;
+    set<int> W, R, F, A, ACQ, REL, SC0, SC1, SC2, SC3, SEMSC0, SEMSC1, SEMSC2, SEMSC3, SCOPESG, SCOPEWG, SCOPEQF, SCOPEDEV, CBAR, AVDEVICE, VISDEVICE, SEMAV, SEMVIS, AV, VIS, NONPRIV;
 
     vector<LoadStore> loadStore;
 
@@ -164,8 +168,12 @@ public:
         CASE(REL, "rel")
         CASE(SC0, "sc0")
         CASE(SC1, "sc1")
+        CASE(SC2, "sc2")
+        CASE(SC3, "sc3")
         CASE(SEMSC0, "semsc0")
         CASE(SEMSC1, "semsc1")
+        CASE(SEMSC2, "semsc2")
+        CASE(SEMSC3, "semsc3")
         CASE(SCOPESG, "scopesg")
         CASE(SCOPEWG, "scopewg")
         CASE(SCOPEQF, "scopeqf")
@@ -236,8 +244,12 @@ public:
         CASE(REL)
         CASE(SC0)
         CASE(SC1)
+        CASE(SC2)
+        CASE(SC3)
         CASE(SEMSC0)
         CASE(SEMSC1)
+        CASE(SEMSC2)
+        CASE(SEMSC3)
         CASE(SCOPESG)
         CASE(SCOPEWG)
         CASE(SCOPEQF)
@@ -268,7 +280,8 @@ public:
         }
         if (R.find(instnum) != R.end() ||
             W.find(instnum) != W.end()) {
-            if (SC0.find(instnum) == SC0.end() && SC1.find(instnum) == SC1.end()) {
+            if (SC0.find(instnum) == SC0.end() && SC1.find(instnum) == SC1.end() &&
+                SC2.find(instnum) == SC2.end() && SC3.find(instnum) == SC3.end()) {
                 fprintf(stderr, "WARNING: read or write without storage class\n");
             }
             if (loadStore[instnum].var == "") {
@@ -289,9 +302,10 @@ public:
              W.find(instnum) == W.end())) {
             fprintf(stderr, "WARNING: second value requires RMW atomic\n");
         }
-        if ((SEMSC0.find(instnum) != SEMSC0.end() || SEMSC1.find(instnum) != SEMSC1.end()) &&
+        if ((SEMSC0.find(instnum) != SEMSC0.end() || SEMSC1.find(instnum) != SEMSC1.end() ||
+             SEMSC2.find(instnum) != SEMSC2.end() || SEMSC3.find(instnum) != SEMSC3.end()) &&
             !(ACQ.find(instnum) != ACQ.end() || REL.find(instnum) != REL.end())) {
-            fprintf(stderr, "WARNING: ACQ+REL = SEMSC0+SEMSC1\n");
+            fprintf(stderr, "WARNING: ACQ+REL = SEMSC0+SEMSC1+SEMSC2+SEMSC3\n");
         }
         if (SEMAV.find(instnum) != SEMAV.end() && REL.find(instnum) == REL.end()) {
             fprintf(stderr, "WARNING: SEMAV in REL\n");

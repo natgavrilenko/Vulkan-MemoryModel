@@ -58,8 +58,10 @@ sig Exec {
   EV : set E, // everything
   W, R, F : set E, // write, read, fence
   A, ACQ, REL: set E, // atomic, acquire, release
-  SC0, SC1 : set E, // storage classes 0 and 1
-  SEMSC0, SEMSC1, SEMSC01 : set E, // storage class semantics 0, 1, 0 and 1
+  SC0, SC1, SC2, SC3 : set E, // storage classes 0, 1, 2, and 3
+  SEMSC0, SEMSC1, SEMSC2, SEMSC3 : set E, // storage class semantics 0, 1, 2, and 3
+  SEMSC01, SEMSC02, SEMSC03, SEMSC12, SEMSC13, SEMSC23 : set E, // storage class semantics 01, 02, 03, 12, 13, and 23
+  SEMSC012, SEMSC013, SEMSC023, SEMSC123, SEMSC0123 : set E, // storage class semantics 012, 013, 023, 123, and 0123
   SCOPESG, SCOPEWG, SCOPEQF, SCOPEDEV : set E, // subgroup/workgroup/queuefamily/device scopes
   CBAR : set E, // control barrier
   RFINIT : set E, // reads that read-from the initial value
@@ -102,9 +104,9 @@ sig Exec {
   hypors : E->E, // hypothetical release sequence
   fr: E->E, // from-read
   sw: E->E, // synchronizes-with
-  ithbsemsc0 : E->E, // inter-thread-happens-before (templated by storage class mask)
-  ithbsemsc1 : E->E,
-  ithbsemsc01 : E->E,
+  ithbsemsc0, ithbsemsc1, ithbsemsc2, ithbsemsc3 : E->E,
+  ithbsemsc01, ithbsemsc02, ithbsemsc03, ithbsemsc12, ithbsemsc13, ithbsemsc23 : E->E,
+  ithbsemsc012, ithbsemsc013, ithbsemsc023, ithbsemsc123, ithbsemsc0123 : E->E,
   hb: E->E, // happens-before
   avsg: E->E, // chain of instructions producing subgroup availability
   avwg: E->E, // chain of instructions producing workgroup availability
@@ -165,9 +167,11 @@ sig Exec {
   // and with those operations on the same reference.
   // Note that this complexity exists in part because we don't split out implicit av/vis
   // ops as distinct instructions.
-  avvisinc = ((SC0+SC1)->AVDEVICE) + (VISDEVICE->(SC0+SC1)) +
+  avvisinc = ((SC0+SC1+SC2+SC3)->AVDEVICE) + (VISDEVICE->(SC0+SC1+SC2+SC3)) +
              (SC0->(SEMSC0&SEMAV)) + ((SEMSC0&SEMVIS)->SC0) +
              (SC1->(SEMSC1&SEMAV)) + ((SEMSC1&SEMVIS)->SC1) +
+             (SC2->(SEMSC2&SEMAV)) + ((SEMSC2&SEMVIS)->SC2) +
+             (SC3->(SEMSC3&SEMAV)) + ((SEMSC3&SEMVIS)->SC3) +
              (rai[stor[AV+VIS] . (sref & sloc)])
 
   // same thread is a subset of same subgroup which is a subset of same workgroup
@@ -245,7 +249,7 @@ sig Exec {
 
   // AV/VISDEVICE are not reads/writes, don't have storage classes, etc. They are
   // special operation invoked outside of a shader.
-  no (R+W+F+CBAR+AV+VIS+RFINIT+ACQ+REL+SC0+SC1+SEMSC0+SEMSC1)&(AVDEVICE+VISDEVICE)
+  no (R+W+F+CBAR+AV+VIS+RFINIT+ACQ+REL+SC0+SC1+SC2+SC3+SEMSC0+SEMSC1+SEMSC2+SEMSC3)&(AVDEVICE+VISDEVICE)
   no AVDEVICE&VISDEVICE
 
   // scbarinst relates pairs of control barriers
@@ -264,14 +268,26 @@ sig Exec {
   no scbarinst & (REL -> (EV-REL))
   no scbarinst & (SEMSC0 -> (EV-SEMSC0))
   no scbarinst & (SEMSC1 -> (EV-SEMSC1))
+  no scbarinst & (SEMSC2 -> (EV-SEMSC2))
+  no scbarinst & (SEMSC3 -> (EV-SEMSC3))
 
   // There is a unique storage class for each memory access.
-  SC0+SC1 = R+W
-  no SC0&SC1
+  SC0+SC1+SC2+SC3 = R+W
+  no (SC0&(SC1+SC2+SC3))+(SC1&(SC2+SC3))+(SC2&SC3)
 
   // All acquire/release ops have one or more semantics storage classes
-  ACQ+REL = SEMSC0+SEMSC1
+  ACQ+REL = SEMSC0+SEMSC1+SEMSC2+SEMSC3
   SEMSC01 = SEMSC0&SEMSC1
+  SEMSC02 = SEMSC0&SEMSC2
+  SEMSC03 = SEMSC0&SEMSC3
+  SEMSC12 = SEMSC1&SEMSC2
+  SEMSC13 = SEMSC1&SEMSC3
+  SEMSC23 = SEMSC2&SEMSC3
+  SEMSC012 = SEMSC01&SEMSC2
+  SEMSC013 = SEMSC01&SEMSC3
+  SEMSC023 = SEMSC02&SEMSC3
+  SEMSC123 = SEMSC12&SEMSC3
+  SEMSC0123 = SEMSC012&SEMSC3
 
   // All atomics and fences have a single scope
   A+F+CBAR in SCOPESG+SCOPEWG+SCOPEQF+SCOPEDEV
@@ -292,8 +308,8 @@ sig Exec {
   // mutually ordered atomics are to the same location and same reference and in scope
   mutordatom = (sloc & sref & (A -> A) & inscope) - iden
 
-  posctosem = po & ((SC0 -> SEMSC0) + (SC1 -> SEMSC1))
-  posemtosc = po & ((SEMSC0 -> SC0) + (SEMSC1 -> SC1))
+  posctosem = po & ((SC0 -> SEMSC0) + (SC1 -> SEMSC1) + (SC2 -> SEMSC2) + (SC3 -> SEMSC3))
+  posemtosc = po & ((SEMSC0 -> SC0) + (SEMSC1 -> SC1) + (SEMSC2 -> SC2) + (SEMSC3 -> SC3))
 
   // A's scoped modification order:
   // - must be a strict partial order
@@ -340,13 +356,77 @@ sig Exec {
                  (stor[SC1+SEMSC1]).po.(stor[REL&SEMSC1]) +
                  (stor[ACQ&SEMSC1]).po.(stor[SC1+SEMSC1]))
 
+  ithbsemsc2 = ^(ssw +
+                 (stor[SEMSC2]).sw.(stor[SEMSC2]) +
+                 (stor[SC2+SEMSC2]).po.(stor[REL&SEMSC2]) +
+                 (stor[ACQ&SEMSC2]).po.(stor[SC2+SEMSC2]))
+
+  ithbsemsc3 = ^(ssw +
+                 (stor[SEMSC3]).sw.(stor[SEMSC3]) +
+                 (stor[SC3+SEMSC3]).po.(stor[REL&SEMSC3]) +
+                 (stor[ACQ&SEMSC3]).po.(stor[SC3+SEMSC3]))
+
   ithbsemsc01 = ^(ssw +
                   (stor[SEMSC01]).sw.(stor[SEMSC01]) +
                   (stor[SC0+SC1+SEMSC01]).po.(stor[REL&SEMSC01]) +
                   (stor[ACQ&SEMSC01]).po.(stor[SC0+SC1+SEMSC01]))
 
+  ithbsemsc02 = ^(ssw +
+                  (stor[SEMSC02]).sw.(stor[SEMSC02]) +
+                  (stor[SC0+SC2+SEMSC02]).po.(stor[REL&SEMSC02]) +
+                  (stor[ACQ&SEMSC02]).po.(stor[SC0+SC2+SEMSC02]))
+
+  ithbsemsc03 = ^(ssw +
+                  (stor[SEMSC03]).sw.(stor[SEMSC03]) +
+                  (stor[SC0+SC3+SEMSC03]).po.(stor[REL&SEMSC03]) +
+                  (stor[ACQ&SEMSC03]).po.(stor[SC0+SC3+SEMSC03]))
+
+  ithbsemsc12 = ^(ssw +
+                  (stor[SEMSC12]).sw.(stor[SEMSC12]) +
+                  (stor[SC1+SC2+SEMSC12]).po.(stor[REL&SEMSC12]) +
+                  (stor[ACQ&SEMSC12]).po.(stor[SC1+SC2+SEMSC12]))
+
+  ithbsemsc13 = ^(ssw +
+                  (stor[SEMSC13]).sw.(stor[SEMSC13]) +
+                  (stor[SC1+SC3+SEMSC13]).po.(stor[REL&SEMSC13]) +
+                  (stor[ACQ&SEMSC13]).po.(stor[SC1+SC3+SEMSC13]))
+
+  ithbsemsc23 = ^(ssw +
+                  (stor[SEMSC23]).sw.(stor[SEMSC23]) +
+                  (stor[SC2+SC3+SEMSC23]).po.(stor[REL&SEMSC23]) +
+                  (stor[ACQ&SEMSC23]).po.(stor[SC2+SC3+SEMSC23]))
+
+  ithbsemsc012 = ^(ssw +
+                  (stor[SEMSC012]).sw.(stor[SEMSC012]) +
+                  (stor[SC0+SC1+SC2+SEMSC012]).po.(stor[REL&SEMSC012]) +
+                  (stor[ACQ&SEMSC012]).po.(stor[SC0+SC1+SC2+SEMSC012]))
+
+  ithbsemsc013 = ^(ssw +
+                  (stor[SEMSC013]).sw.(stor[SEMSC013]) +
+                  (stor[SC0+SC1+SC3+SEMSC013]).po.(stor[REL&SEMSC013]) +
+                  (stor[ACQ&SEMSC013]).po.(stor[SC0+SC1+SC3+SEMSC013]))
+
+  ithbsemsc023 = ^(ssw +
+                  (stor[SEMSC023]).sw.(stor[SEMSC023]) +
+                  (stor[SC0+SC2+SC3+SEMSC023]).po.(stor[REL&SEMSC023]) +
+                  (stor[ACQ&SEMSC023]).po.(stor[SC0+SC2+SC3+SEMSC023]))
+
+  ithbsemsc123 = ^(ssw +
+                  (stor[SEMSC123]).sw.(stor[SEMSC123]) +
+                  (stor[SC1+SC2+SC3+SEMSC123]).po.(stor[REL&SEMSC123]) +
+                  (stor[ACQ&SEMSC123]).po.(stor[SC1+SC2+SC3+SEMSC123]))
+
+  ithbsemsc0123 = ^(ssw +
+                  (stor[SEMSC0123]).sw.(stor[SEMSC0123]) +
+                  (stor[SC0+SC1+SC2+SC3+SEMSC0123]).po.(stor[REL&SEMSC0123]) +
+                  (stor[ACQ&SEMSC0123]).po.(stor[SC0+SC1+SC2+SC3+SEMSC0123]))
+
   // happens-before = ithb<SC> or program order
-  hb = ithbsemsc0 + ithbsemsc1 + ithbsemsc01 + po
+  hb = ithbsemsc0 + ithbsemsc1 + ithbsemsc2 + ithbsemsc3 +
+       ithbsemsc01 + ithbsemsc02 + ithbsemsc03 +
+       ithbsemsc12 + ithbsemsc13 + ithbsemsc23 +
+       ithbsemsc012 + ithbsemsc013 + ithbsemsc023 + ithbsemsc123 +
+       ithbsemsc0123 + po
 
   // Chains of instructions that produce the desired availability/visibility.
   // Example: An AVWG that happens before an AVSH in the same workgroup is
