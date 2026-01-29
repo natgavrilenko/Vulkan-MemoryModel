@@ -36,7 +36,8 @@ runtests: asserts $(litmustests)
 pre:
 	@mkdir -p build
 #	@cp spirv.als build/spirv.als
-	@cp spirv-1-semsc.als build/spirv.als
+#	@cp spirv-1-semsc.als build/spirv.als
+	@cp spirv-2-semsc-trans.als build/spirv.als
 
 clean:
 	@rm -f build/*
