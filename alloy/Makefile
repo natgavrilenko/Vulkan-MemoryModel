@@ -35,7 +35,8 @@ runtests: asserts $(litmustests)
 # to open files in a relative path when running from the command line.
 pre:
 	@mkdir -p build
-	@cp spirv.als build
+#	@cp spirv.als build/spirv.als
+	@cp spirv-1-semsc.als build/spirv.als
 
 clean:
 	@rm -f build/*
