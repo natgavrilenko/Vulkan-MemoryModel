@@ -1,0 +1,21 @@
+// Copyright (c) 2026 Khronos Group. This work is licensed under a
+// Creative Commons Attribution 4.0 International License; see
+// http://creativecommons.org/licenses/by/4.0/
+
+NEWWG
+NEWSG
+NEWTHREAD 0
+st.nonpriv.sc0 a = 1
+st.nonpriv.sc1 b = 2
+NEWSG
+NEWTHREAD 1
+avdevice
+visdevice
+NEWSG
+NEWTHREAD 2
+ld.nonpriv.sc0 c = 0
+SLOC a b
+SLOC b c
+SSW 0 1
+SSW 1 2
+NOSOLUTION consistent[X]
