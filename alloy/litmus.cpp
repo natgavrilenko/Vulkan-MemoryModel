@@ -120,8 +120,9 @@ using namespace std;
 // instances.
 class LoadStore {
 public:
-    LoadStore() : var(), value(-1), value2(-1), cbarInstance(-1) {}
+    LoadStore() : var(), loc(), value(-1), value2(-1), cbarInstance(-1) {}
     string var;
+    string loc;
     int value;
     int value2;
     int cbarInstance;
@@ -330,7 +331,7 @@ void sequenceInSuffix(stringstream &o, int a, int b, bool allB, string suffix)
             o << "+";
         }
     }
-    
+
     o << suffix << "\n";
 }
 
@@ -472,6 +473,7 @@ int main(int argc, char *argv[])
                 string var = line.substr(0, line.find_first_of(" ="));
 
                 instState.loadStore[instnum].var = var;
+                instState.loadStore[instnum].loc = var;
 
                 line = line.substr(var.length());
 
@@ -548,21 +550,6 @@ int main(int argc, char *argv[])
     // print simple state for all instructions
     instState.print(o);
 
-    // Determine read-from and RFINIT from the variable load/stores
-    for (int i = 0; i <= instnum; ++i) {
-    for (int j = 0; j <= instnum; ++j) {
-        if (instState.loadStore[j].var != "") {
-            if (instState.loadStore[i].var == instState.loadStore[j].var &&
-                instState.isWrite(i) && instState.isRead(j) &&
-                instState.getWriteValue(i) == instState.getReadValue(j)) {
-                o << "    (E" << i << "->E" << j << ") in X.rf\n";
-            } else if (i == j && instState.isRead(j) && instState.getReadValue(j) == 0) {
-                o << "    E" << j << " in X.RFINIT\n";
-            }
-        }
-    }
-    }
-
     // Find each new variable and put all uses of it in X.pgmsref
     set<string> variables;
     bool firstSref = true;
@@ -605,12 +592,28 @@ int main(int argc, char *argv[])
         for (int j = 0; j <= instnum; ++j) {
             if (instState.loadStore[i].var == locA &&
                 instState.loadStore[j].var == locB) {
+                instState.loadStore[j].loc = instState.loadStore[i].loc;
                 o << "+(E" << i << "->E" << j << ")";
             }
         }
         }
     }
     o << "\n";
+
+    // Determine read-from and RFINIT from the variable load/stores
+    for (int i = 0; i <= instnum; ++i) {
+    for (int j = 0; j <= instnum; ++j) {
+        if (instState.loadStore[j].var != "") {
+            if (instState.loadStore[i].loc == instState.loadStore[j].loc &&
+                instState.isWrite(i) && instState.isRead(j) &&
+                instState.getWriteValue(i) == instState.getReadValue(j)) {
+                o << "    (E" << i << "->E" << j << ") in X.rf\n";
+            } else if (i == j && instState.isRead(j) && instState.getReadValue(j) == 0) {
+                o << "    E" << j << " in X.RFINIT\n";
+            }
+        }
+    }
+    }
 
     // print groups of related control barrier instances
     set<int> cbarInsts;
@@ -670,7 +673,7 @@ int main(int argc, char *argv[])
         outals << "  #Exec = 1\n";
         outals << "  #E = " << numEvents << "\n";
         outals << "  some disj ";
-    
+
         for (int i = 0; i < numEvents; ++i) {
             outals << "E" << i;
             if (i != numEvents-1) {
