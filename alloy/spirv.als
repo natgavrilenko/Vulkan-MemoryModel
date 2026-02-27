@@ -107,6 +107,7 @@ sig Exec {
   ithbsemsc0, ithbsemsc1, ithbsemsc2, ithbsemsc3 : E->E,
   ithbsemsc01, ithbsemsc02, ithbsemsc03, ithbsemsc12, ithbsemsc13, ithbsemsc23 : E->E,
   ithbsemsc012, ithbsemsc013, ithbsemsc023, ithbsemsc123, ithbsemsc0123 : E->E,
+  ithb: E->E, // inter-thread-happens-before
   hb: E->E, // happens-before
   avsg: E->E, // chain of instructions producing subgroup availability
   avwg: E->E, // chain of instructions producing workgroup availability
@@ -421,12 +422,14 @@ sig Exec {
                   (stor[SC0+SC1+SC2+SC3+SEMSC0123]).po.(stor[REL&SEMSC0123]) +
                   (stor[ACQ&SEMSC0123]).po.(stor[SC0+SC1+SC2+SC3+SEMSC0123]))
 
-  // happens-before = ithb<SC> or program order
-  hb = ithbsemsc0 + ithbsemsc1 + ithbsemsc2 + ithbsemsc3 +
+  ithb = ithbsemsc0 + ithbsemsc1 + ithbsemsc2 + ithbsemsc3 +
        ithbsemsc01 + ithbsemsc02 + ithbsemsc03 +
        ithbsemsc12 + ithbsemsc13 + ithbsemsc23 +
        ithbsemsc012 + ithbsemsc013 + ithbsemsc023 + ithbsemsc123 +
-       ithbsemsc0123 + po
+       ithbsemsc0123
+
+  // happens-before = ithb<SC> or program order
+  hb = ithb + po
 
   // Chains of instructions that produce the desired availability/visibility.
   // Example: An AVWG that happens before an AVSH in the same workgroup is
@@ -446,8 +449,8 @@ sig Exec {
   visdv = stor[VISDEVICE]
 
   locord = sloc & // relates memory accesses to the same location
-           ((hb & sthd & sref) + // single-thread case
-            ((stor[R-PRIV]) . hb . (stor[R+W-PRIV])) + // RaR, WaR (non-private)
+           ((po & sref) + // single-thread case
+            ((stor[R-PRIV]) . ithb . (stor[R+W-PRIV])) + // RaR, WaR (non-private)
             ((stor[R]) . ^ssw . (stor[R+W])) + // RaR, WaR (any)
             (sref & ((stor[W-PRIV]) . (rc[po] & avvisinc) . avsg . (hb & ssg) .                               (stor[W-PRIV]))) + // WaW (via subgroup instance domain)
             (sref & ((stor[W-PRIV]) . (rc[po] & avvisinc) . avsg . (hb & ssg) . vissg . (rc[po] & avvisinc) . (stor[R-PRIV]))) + // RaW (via subgroup instance domain)
