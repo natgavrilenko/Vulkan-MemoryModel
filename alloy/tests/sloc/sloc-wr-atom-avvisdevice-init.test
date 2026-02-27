@@ -1,0 +1,19 @@
+// Copyright (c) 2026 Khronos Group. This work is licensed under a
+// Creative Commons Attribution 4.0 International License; see
+// http://creativecommons.org/licenses/by/4.0/
+
+NEWWG
+NEWSG
+NEWTHREAD 0
+st.atom.scopewg.sc1 b = 1
+NEWSG
+NEWTHREAD 1
+avdevice
+visdevice
+NEWSG
+NEWTHREAD 2
+ld.atom.scopewg.sc0 a = 0
+SLOC a b
+SSW 0 1
+SSW 1 2
+NOSOLUTION consistent[X]

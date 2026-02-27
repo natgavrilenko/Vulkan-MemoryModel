@@ -1,0 +1,18 @@
+// Copyright (c) 2026 Khronos Group. This work is licensed under a
+// Creative Commons Attribution 4.0 International License; see
+// http://creativecommons.org/licenses/by/4.0/
+
+NEWWG
+NEWSG
+NEWTHREAD
+ld.atom.scopewg.sc0 a = 0
+st.atom.rel.scopewg.sc0.semsc0.semsc1 c = 1
+ld.atom.acq.scopewg.sc0.semsc0.semsc1 d = 1
+st.atom.scopewg.sc1 b = 1
+NEWSG
+NEWTHREAD
+ld.atom.acq.scopewg.sc0.semsc0.semsc1 c = 1
+st.atom.rel.scopewg.sc0.semsc0.semsc1 d = 1
+SLOC a b
+SATISFIABLE consistent[X] && #dr=0
+NOSOLUTION consistent[X] && #dr>0
