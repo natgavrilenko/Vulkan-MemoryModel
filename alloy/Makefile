@@ -11,7 +11,8 @@
 
 default: runtests
 
-litmustests = $(addsuffix .gen, $(notdir $(sort $(wildcard tests/*.test))))
+rawtests = $(wildcard tests/*.test) $(wildcard tests/*/*.test)
+litmustests = $(patsubst tests/%, %, $(rawtests))
 
 build/litmus.exe : litmus.cpp
 	@mkdir -p build
@@ -51,9 +52,10 @@ endif
 
 # Generate the temp files in ./build, run Alloy from the command line, and
 # diff the generated output against the .ref file (generated from the tests)
-%.test.gen : tests/%.test build/litmus.exe pre
+$(litmustests): % : tests/% build/litmus.exe pre
 	$(eval test = $(notdir $<))
+	$(eval subdir = $(dir $<))
 	@echo $(test)
-	@./build/litmus.exe $(test) tests build
+	@./build/litmus.exe $(test) $(subdir) build
 	@java -cp "org.alloytools.alloy.dist-5.0.0-20190619.101010-34.jar$(JAVACPSEPARATOR)." RunCommandLine build/$(test).gen > build/$(test).out
 	@diff --strip-trailing-cr build/$(test).ref build/$(test).out || echo "Test $@ failed"
