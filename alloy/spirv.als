@@ -433,17 +433,48 @@ sig Exec {
   // enough to make the original write available to the shader domain.
   // "chains & ..." effectively "turns off" nontrivial chains when the feature
   // is not supported by ANDing with the identity relation.
+/*
+  // Original
+  avsg = (chains &   (*((stor[AVSG]) . (hb & ssg & avvisinc))) ) . (stor[AVSG])
+  avwg = (chains & ( (*((stor[AVSG]) . (hb & ssg & avvisinc))) . (*((stor[AVWG]) . (hb & swg & avvisinc))) )) . (stor[AVWG])
+  avqf = (chains & ( (*((stor[AVSG]) . (hb & ssg & avvisinc))) . (*((stor[AVWG]) . (hb & swg & avvisinc))) . (*((stor[AVQF]) . (hb & sqf & avvisinc))) )) . (stor[AVQF])
+  avsh = (chains & ( (*((stor[AVSG]) . (hb & ssg & avvisinc))) . (*((stor[AVWG]) . (hb & swg & avvisinc))) . (*((stor[AVQF]) . (hb & sqf & avvisinc))) . (*((stor[AVSHADER]) . (hb & avvisinc))) )) . (stor[AVSHADER])
+  avdv = stor[AVDEVICE]
+
+  vissg = stor[VISSG]       . (chains & (*((hb & ssg & avvisinc) . (stor[VISSG]))) )
+  viswg = (stor[VISWG])     . (chains & ( (*((hb & swg & avvisinc) . (stor[VISWG]))) . (*((hb & ssg & avvisinc) . (stor[VISSG]))) ))
+  visqf = (stor[VISQF])     . (chains & ( (*((hb & sqf & avvisinc) . (stor[VISQF]))) . (*((hb & swg & avvisinc) . (stor[VISWG]))) . (*((hb & ssg & avvisinc) . (stor[VISSG]))) ))
+  vissh = (stor[VISSHADER]) . (chains & ( (*((hb & avvisinc) . (stor[VISSHADER]))) . (*((hb & sqf & avvisinc) . (stor[VISQF]))) . (*((hb & swg & avvisinc) . (stor[VISWG]))) . (*((hb & ssg & avvisinc) . (stor[VISSG]))) ))
+  visdv = stor[VISDEVICE]
+*/
+
+  // Simplified
+  avsg = (chains & (*((stor[AVSG]) . (hb & ssg & avvisinc)))) . (stor[AVSG])
+  avwg = (chains & (avsg . (*((stor[AVWG]) . (hb & swg & avvisinc))))) . (stor[AVWG])
+  avqf = (chains & (avwg . (*((stor[AVQF]) . (hb & sqf & avvisinc))))) . (stor[AVQF])
+  avsh = (chains & (avqf . (*((stor[AVSHADER]) . (hb & avvisinc))))) . (stor[AVSHADER])
+  avdv = stor[AVDEVICE]
+
+  vissg = stor[VISSG]       . (chains & (*((hb & ssg & avvisinc) . (stor[VISSG]))))
+  viswg = (stor[VISWG])     . (chains & ((*((hb & swg & avvisinc) . (stor[VISWG]))) . vissg))
+  visqf = (stor[VISQF])     . (chains & ((*((hb & sqf & avvisinc) . (stor[VISQF]))) . viswg))
+  vissh = (stor[VISSHADER]) . (chains & ((*((hb & avvisinc) . (stor[VISSHADER]))) . visqf))
+  visdv = stor[VISDEVICE]
+
+/*
+  // Claude
   avsg = stor[AVSG]
-  avwg = (chains & (rc[avsg . (hb & ssg & avvisinc)])) . (stor[AVWG])
-  avqf = (chains & (rc[avsg . (hb & ssg & avvisinc)]) . (rc[avwg . (hb & swg & avvisinc)])) . (stor[AVQF])
-  avsh = (chains & (rc[avsg . (hb & ssg & avvisinc)]) . (rc[avwg . (hb & swg & avvisinc)]) . (rc[avqf . (hb & sqf & avvisinc)])) . (stor[AVSHADER])
+  avwg = (chains & *((avsg . (hb & ssg & avvisinc)) + ((stor[AVWG]) . (hb & swg & avvisinc)))) . (stor[AVWG])
+  avqf = (chains & *(avsg . (hb & ssg & avvisinc)) . *((avwg . (hb & swg & avvisinc)) + ((stor[AVQF]) . (hb & sqf & avvisinc)))) . (stor[AVQF])
+  avsh = (chains & *(avsg . (hb & ssg & avvisinc)) . *(avwg . (hb & swg & avvisinc)) . *((avqf . (hb & sqf & avvisinc)) + ((stor[AVSHADER]) . (hb & avvisinc)))) . (stor[AVSHADER])
   avdv = stor[AVDEVICE]
 
   vissg = stor[VISSG]
-  viswg = (stor[VISWG])     . (chains & (rc[(hb & ssg & avvisinc) . vissg]))
-  visqf = (stor[VISQF])     . (chains & (rc[(hb & swg & avvisinc) . viswg]) . (rc[(hb & ssg & avvisinc) . vissg]))
-  vissh = (stor[VISSHADER]) . (chains & (rc[(hb & sqf & avvisinc) . visqf]) . (rc[(hb & swg & avvisinc) . viswg]) . (rc[(hb & ssg & avvisinc) . vissg]))
+  viswg = (stor[VISWG])     . (chains & *(((hb & ssg & avvisinc) . vissg) + ((hb & swg & avvisinc) . (stor[VISWG]))))
+  visqf = (stor[VISQF])     . (chains & *(((hb & swg & avvisinc) . viswg) + ((hb & sqf & avvisinc) . (stor[VISQF]))) . *((hb & ssg & avvisinc) . vissg))
+  vissh = (stor[VISSHADER]) . (chains & *(((hb & sqf & avvisinc) . visqf) + ((hb & avvisinc) . (stor[VISSHADER]))) . *((hb & swg & avvisinc) . viswg) . *((hb & ssg & avvisinc) . vissg))
   visdv = stor[VISDEVICE]
+*/
 
   locord = sloc & // relates memory accesses to the same location
            ((hb & sthd & sref) + // single-thread case

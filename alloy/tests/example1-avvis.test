@@ -1,0 +1,14 @@
+NEWWG
+NEWSG
+NEWTHREAD
+st.av.scopewg.sc0 a = 1
+st.atom.rel.scopewg.sc1.semsc0.semsc1.semav b = 1
+NEWSG
+NEWTHREAD
+ld.atom.acq.scopewg.sc1.semsc1 b = 1
+st.atom.rel.scopewg.sc1.semsc1 c = 1
+NEWSG
+NEWTHREAD
+ld.atom.acq.scopewg.sc1.semsc0.semsc1.semvis c = 1
+ld.vis.scopewg.sc0 a = 0
+NOSOLUTION consistent[X]
