@@ -446,7 +446,7 @@ sig Exec {
     ((stor[R]) . ^ssw . (stor[R+W])) +
     ((stor[W]) . schb . (stor[AVDEVICE]) . hbsc . (stor[W])) +
     ((stor[W]) . schb . (stor[AVDEVICE]) . hb . (stor[VISDEVICE]) . hbsc . (stor[R])) +
-    ((stor[R&NONPRIV]) . (po + schbsc + schbsca) . (stor[(R+W)&NONPRIV])) +
+    ((stor[R&NONPRIV]) . (schbsc + schbsca) . (stor[(R+W)&NONPRIV])) +
     (sref & (
       ((po + schbsc) & sthd) +
       ((stor[SC0&W&NONPRIV]) . avsg0 . (ithbsemsc0 & ssg) . (stor[SC0&W&NONPRIV])) +
