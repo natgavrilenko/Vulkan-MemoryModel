@@ -443,10 +443,10 @@ sig Exec {
               (ithbsemsc23 & ((SC0 -> SC1) + (SC1 -> SC0)))
 
   locord = sloc & (
-    ((stor[R]) . ^ssw . (stor[R+W])) +
+    ((stor[R]) . ^ssw . (stor[W])) +
     ((stor[W]) . schb . (stor[AVDEVICE]) . hbsc . (stor[W])) +
     ((stor[W]) . schb . (stor[AVDEVICE]) . hb . (stor[VISDEVICE]) . hbsc . (stor[R])) +
-    ((stor[R&NONPRIV]) . (schbsc + schbsca) . (stor[(R+W)&NONPRIV])) +
+    ((stor[R&NONPRIV]) . (schbsc + schbsca) . (stor[W&NONPRIV])) +
     (sref & (
       ((po + schbsc) & sthd) +
       ((stor[SC0&W&NONPRIV]) . avsg0 . (ithbsemsc0 & ssg) . (stor[SC0&W&NONPRIV])) +
