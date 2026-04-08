@@ -66,13 +66,9 @@ sig Exec {
   CBAR : set E, // control barrier
   RFINIT : set E, // reads that read-from the initial value
   AV, VIS : set E, // per-instruction availability/visibility operations
-  AVSHADER, VISSHADER : set E, // availability/visibility op to shader domain
-  AVQF, VISQF : set E, // availability/visibility op to queuefamily instance domain
-  AVWG, VISWG : set E, // availability/visibility op to workgroup instance domain
-  AVSG, VISSG : set E, // availability/visibility op to subgroup instance domain
   SEMAV, SEMVIS : set E, // memory semantics for availability/visibility operations
   AVDEVICE, VISDEVICE : set E, // availability/visibility op to device domain
-  NONPRIV, PRIV : set E, // non-private (participates in inter-thread ordering) vs private
+  NONPRIV : set E, // non-private (participates in inter-thread ordering) vs private
 
   // relations statically defined by a "program"
   sthd : E->E, // same thread
@@ -95,7 +91,6 @@ sig Exec {
   mutordatom : E->E, // mututally ordered atomics (same loc, inscope)
   sloc : E->E, // same location (roughly, transitive closure of pgmsloc)
   sref : E->E, // same reference (roughly, transitive closure of pgmsref + stor[R+W])
-  avvisinc : E->E, // relates av/vis ops with those operations they may include
 
   // dynamic relations established at runtime
   rf : E->E, // reads-from
@@ -108,16 +103,15 @@ sig Exec {
   ithbsemsc01, ithbsemsc02, ithbsemsc03, ithbsemsc12, ithbsemsc13, ithbsemsc23 : E->E,
   ithbsemsc012, ithbsemsc013, ithbsemsc023, ithbsemsc123, ithbsemsc0123 : E->E,
   hb: E->E, // happens-before
-  avsg: E->E, // chain of instructions producing subgroup availability
-  avwg: E->E, // chain of instructions producing workgroup availability
-  avqf: E->E, // chain of instructions producing queue family availability
-  avsh: E->E, // chain of instructions producing shader availability
-  avdv: E->E, // device availability
-  vissg: E->E, // chain of instructions producing subgroup visibility
-  viswg: E->E, // chain of instructions producing workgroup visibility
-  visqf: E->E, // chain of instructions producing queue family visibility
-  vissh: E->E, // chain of instructions producing shader visibility
-  visdv: E->E, // device visibility
+  schb, hbsc, schbsc, schbsca: E->E, // happens-before restricted by storage class
+  avsg0, avsg1, avsg2, avsg3: E->E, // chain of instructions producing subgroup availability
+  avwg0, avwg1, avwg2, avwg3: E->E, // chain of instructions producing workgroup availability
+  avqf0, avqf1, avqf2, avqf3: E->E, // chain of instructions producing queue family availability
+  avdv0, avdv1, avdv2, avdv3: E->E, // chain of instructions producing shader availability
+  vissg0, vissg1, vissg2, vissg3: E->E, // chain of instructions producing subgroup visibility
+  viswg0, viswg1, viswg2, viswg3: E->E, // chain of instructions producing workgroup visibility
+  visqf0, visqf1, visqf2, visqf3: E->E, // chain of instructions producing queue family visibility
+  visdv0, visdv1, visdv2, visdv3: E->E, // chain of instructions producing shader visibility
   locord: E->E, // location-ordered
   dr: E->E, // data-race
   visto: E->E, // visible-to
@@ -154,25 +148,6 @@ sig Exec {
   // sref is the transitive closure of all srefs specified in pgmsref (and its
   // inverse) and add the identity over R+W
   sref = ^(rai[pgmsref]) + stor[R+W]
-
-  // AVDEVICE operation applies to all operations that are ordered before
-  // the current operation, but not to the current operation itself.
-  // VISDEVICE operation applies to all operations that are ordered after
-  // the current operation, but not to the current operation itself.
-  // SEMAV operation with SEMSCi applies to all operations in SCi that are ordered before
-  // the current operation, but not to the current operation itself.
-  // SEMVIS operation with SEMSCi applies to all operations in SCi that are ordered after
-  // the current operation, but not to the current operation itself.
-  // AV+VIS ops (per-instruction) are avvisinc with themselves (av/vis op happens in the right order)
-  // and with those operations on the same reference.
-  // Note that this complexity exists in part because we don't split out implicit av/vis
-  // ops as distinct instructions.
-  avvisinc = ((SC0+SC1+SC2+SC3)->AVDEVICE) + (VISDEVICE->(SC0+SC1+SC2+SC3)) +
-             (SC0->(SEMSC0&SEMAV)) + ((SEMSC0&SEMVIS)->SC0) +
-             (SC1->(SEMSC1&SEMAV)) + ((SEMSC1&SEMVIS)->SC1) +
-             (SC2->(SEMSC2&SEMAV)) + ((SEMSC2&SEMVIS)->SC2) +
-             (SC3->(SEMSC3&SEMAV)) + ((SEMSC3&SEMVIS)->SC3) +
-             (rai[stor[AV+VIS] . (sref & sloc)])
 
   // same thread is a subset of same subgroup which is a subset of same workgroup
   sthd in ssg
@@ -219,8 +194,6 @@ sig Exec {
 
   // nonpriv is only meaningful for memory accesses
   NONPRIV in R+W
-  // PRIV is the complement of NONPRIV
-  PRIV = R+W-NONPRIV
 
   // Atomic operations are always considered non-private
   A in NONPRIV
@@ -232,20 +205,6 @@ sig Exec {
   // availability/visibility semantics in REL/ACQ only, respectively
   SEMAV in REL
   SEMVIS in ACQ
-
-  // All coherent ops have implicit availability/visibility ops (AV, VIS).
-  // Barriers/atomics can also include availability/visibility ops via their semantics (SEMAV, SEMVIS).
-  AVSHADER = (AV+SEMAV) & SCOPEDEV
-  VISSHADER = (VIS+SEMVIS) & SCOPEDEV
-
-  AVQF = (AV+SEMAV) & (SCOPEDEV + SCOPEQF)
-  VISQF = (VIS+SEMVIS) & (SCOPEDEV + SCOPEQF)
-
-  AVWG = (AV+SEMAV) & (SCOPEDEV + SCOPEQF + SCOPEWG)
-  VISWG = (VIS+SEMVIS) & (SCOPEDEV + SCOPEQF + SCOPEWG)
-
-  AVSG = AV+SEMAV
-  VISSG = VIS+SEMVIS
 
   // AV/VISDEVICE are not reads/writes, don't have storage classes, etc. They are
   // special operation invoked outside of a shader.
@@ -433,32 +392,96 @@ sig Exec {
   // enough to make the original write available to the shader domain.
   // "chains & ..." effectively "turns off" nontrivial chains when the feature
   // is not supported by ANDing with the identity relation.
-  avsg = stor[AVSG]
-  avwg = (chains & (rc[avsg . (hb & ssg & avvisinc)])) . (stor[AVWG])
-  avqf = (chains & (rc[avsg . (hb & ssg & avvisinc)]) . (rc[avwg . (hb & swg & avvisinc)])) . (stor[AVQF])
-  avsh = (chains & (rc[avsg . (hb & ssg & avvisinc)]) . (rc[avwg . (hb & swg & avvisinc)]) . (rc[avqf . (hb & sqf & avvisinc)])) . (stor[AVSHADER])
-  avdv = stor[AVDEVICE]
+  avsg0 = (stor[SC0 & W & NONPRIV]) . (rc[(po . (stor[SEMAV & SEMSC0])) + (sref & (po . (stor[W])))]) . (stor[SCOPESG+SCOPEWG+SCOPEQF+SCOPEDEV])
+  avwg0 = (rc[sref & (avsg0 . (ithbsemsc0 & ssg))]) . avsg0 . (rc[(chains & ithbsemsc0 & ssg) . (stor[SEMAV & SEMSC0])]) . (stor[SCOPEWG+SCOPEQF+SCOPEDEV])
+  avqf0 = (rc[sref & (avwg0 . (ithbsemsc0 & swg))]) . avwg0 . (rc[(chains & ithbsemsc0 & swg) . (stor[SEMAV & SEMSC0])]) . (stor[SCOPEQF+SCOPEDEV])
+  avdv0 = (rc[sref & (avqf0 . (ithbsemsc0 & sqf))]) . avqf0 . (rc[(chains & ithbsemsc0 & sqf) . (stor[SEMAV & SEMSC0])]) . (stor[SCOPEDEV])
 
-  vissg = stor[VISSG]
-  viswg = (stor[VISWG])     . (chains & (rc[(hb & ssg & avvisinc) . vissg]))
-  visqf = (stor[VISQF])     . (chains & (rc[(hb & swg & avvisinc) . viswg]) . (rc[(hb & ssg & avvisinc) . vissg]))
-  vissh = (stor[VISSHADER]) . (chains & (rc[(hb & sqf & avvisinc) . visqf]) . (rc[(hb & swg & avvisinc) . viswg]) . (rc[(hb & ssg & avvisinc) . vissg]))
-  visdv = stor[VISDEVICE]
+  avsg1 = (stor[SC1 & W & NONPRIV]) . (rc[(po . (stor[SEMAV & SEMSC1])) + (sref & (po . (stor[W])))]) . (stor[SCOPESG+SCOPEWG+SCOPEQF+SCOPEDEV])
+  avwg1 = (rc[sref & (avsg1 . (ithbsemsc1 & ssg))]) . avsg1 . (rc[(chains & ithbsemsc1 & ssg) . (stor[SEMAV & SEMSC1])]) . (stor[SCOPEWG+SCOPEQF+SCOPEDEV])
+  avqf1 = (rc[sref & (avwg1 . (ithbsemsc1 & swg))]) . avwg1 . (rc[(chains & ithbsemsc1 & swg) . (stor[SEMAV & SEMSC1])]) . (stor[SCOPEQF+SCOPEDEV])
+  avdv1 = (rc[sref & (avqf1 . (ithbsemsc1 & sqf))]) . avqf1 . (rc[(chains & ithbsemsc1 & sqf) . (stor[SEMAV & SEMSC1])]) . (stor[SCOPEDEV])
 
-  locord = sloc & // relates memory accesses to the same location
-           ((hb & sthd & sref) + // single-thread case
-            ((stor[R-PRIV]) . hb . (stor[R+W-PRIV])) + // RaR, WaR (non-private)
-            ((stor[R]) . ^ssw . (stor[R+W])) + // RaR, WaR (any)
-            (sref & ((stor[W-PRIV]) . (rc[po] & avvisinc) . avsg . (hb & ssg) .                               (stor[W-PRIV]))) + // WaW (via subgroup instance domain)
-            (sref & ((stor[W-PRIV]) . (rc[po] & avvisinc) . avsg . (hb & ssg) . vissg . (rc[po] & avvisinc) . (stor[R-PRIV]))) + // RaW (via subgroup instance domain)
-            (sref & ((stor[W-PRIV]) . (rc[po] & avvisinc) . avwg . (hb & swg) .                               (stor[W-PRIV]))) + // WaW (via workgroup instance domain)
-            (sref & ((stor[W-PRIV]) . (rc[po] & avvisinc) . avwg . (hb & swg) . viswg . (rc[po] & avvisinc) . (stor[R-PRIV]))) + // RaW (via workgroup instance domain)
-            (sref & ((stor[W-PRIV]) . (rc[po] & avvisinc) . avqf . (hb & sqf) .                               (stor[W-PRIV]))) + // WaW (via queue family instance domain)
-            (sref & ((stor[W-PRIV]) . (rc[po] & avvisinc) . avqf . (hb & sqf) . visqf . (rc[po] & avvisinc) . (stor[R-PRIV]))) + // RaW (via queue family instance domain)
-            (sref & ((stor[W-PRIV]) . (rc[po] & avvisinc) . avsh . (hb      ) .                               (stor[W-PRIV]))) + // WaW (via shader domain)
-            (sref & ((stor[W-PRIV]) . (rc[po] & avvisinc) . avsh . (hb      ) . vissh . (rc[po] & avvisinc) . (stor[R-PRIV]))) + // RaW (via shader domain)
-            (        (stor[W])      . (hb & avvisinc)     . avdv . (hb      ) .                               (stor[W])) +       // WaW (via device domain)
-            (        (stor[W])      . (hb & avvisinc)     . avdv . (hb      ) . visdv . (hb & avvisinc)     . (stor[R])))        // RaW (via device domain)
+  avsg2 = (stor[SC2 & W & NONPRIV]) . (rc[(po . (stor[SEMAV & SEMSC2])) + (sref & (po . (stor[W])))]) . (stor[SCOPESG+SCOPEWG+SCOPEQF+SCOPEDEV])
+  avwg2 = (rc[sref & (avsg2 . (ithbsemsc2 & ssg))]) . avsg2 . (rc[(chains & ithbsemsc2 & ssg) . (stor[SEMAV & SEMSC2])]) . (stor[SCOPEWG+SCOPEQF+SCOPEDEV])
+  avqf2 = (rc[sref & (avwg2 . (ithbsemsc2 & swg))]) . avwg2 . (rc[(chains & ithbsemsc2 & swg) . (stor[SEMAV & SEMSC2])]) . (stor[SCOPEQF+SCOPEDEV])
+  avdv2 = (rc[sref & (avqf2 . (ithbsemsc2 & sqf))]) . avqf2 . (rc[(chains & ithbsemsc2 & sqf) . (stor[SEMAV & SEMSC2])]) . (stor[SCOPEDEV])
+
+  avsg3 = (stor[SC3 & W & NONPRIV]) . (rc[(po . (stor[SEMAV & SEMSC3])) + (sref & (po . (stor[W])))]) . (stor[SCOPESG+SCOPEWG+SCOPEQF+SCOPEDEV])
+  avwg3 = (rc[sref & (avsg3 . (ithbsemsc3 & ssg))]) . avsg3 . (rc[(chains & ithbsemsc3 & ssg) . (stor[SEMAV & SEMSC3])]) . (stor[SCOPEWG+SCOPEQF+SCOPEDEV])
+  avqf3 = (rc[sref & (avwg3 . (ithbsemsc3 & swg))]) . avwg3 . (rc[(chains & ithbsemsc3 & swg) . (stor[SEMAV & SEMSC3])]) . (stor[SCOPEQF+SCOPEDEV])
+  avdv3 = (rc[sref & (avqf3 . (ithbsemsc3 & sqf))]) . avqf3 . (rc[(chains & ithbsemsc3 & sqf) . (stor[SEMAV & SEMSC3])]) . (stor[SCOPEDEV])
+
+  vissg0 = (stor[SCOPESG+SCOPEWG+SCOPEQF+SCOPEDEV]) . (rc[((stor[SEMVIS & SEMSC0]) . po) + (sref & ((stor[R]) . po))]) . (stor[SC0 & R & NONPRIV])
+  viswg0 = (stor[SCOPEWG+SCOPEQF+SCOPEDEV]) . (rc[(stor[SEMVIS & SEMSC0]) . (chains & ithbsemsc0 & ssg)]) . vissg0 . (rc[sref & ((ssg & ithbsemsc0) . vissg0)])
+  visqf0 = (stor[SCOPEQF+SCOPEDEV]) . (rc[(stor[SEMVIS & SEMSC0]) . (chains & ithbsemsc0 & swg)]) . viswg0 . (rc[sref & ((swg & ithbsemsc0) . viswg0)])
+  visdv0 = (stor[SCOPEDEV]) . (rc[(stor[SEMVIS & SEMSC0]) . (chains & ithbsemsc0 & sqf)]) . visqf0 . (rc[sref & ((sqf & ithbsemsc0) . visqf0)])
+
+  vissg1 = (stor[SCOPESG+SCOPEWG+SCOPEQF+SCOPEDEV]) . (rc[((stor[SEMVIS & SEMSC1]) . po) + (sref & ((stor[R]) . po))]) . (stor[SC1 & R & NONPRIV])
+  viswg1 = (stor[SCOPEWG+SCOPEQF+SCOPEDEV]) . (rc[(stor[SEMVIS & SEMSC1]) . (chains & ithbsemsc1 & ssg)]) . vissg1 . (rc[sref & ((ssg & ithbsemsc1) . vissg1)])
+  visqf1 = (stor[SCOPEQF+SCOPEDEV]) . (rc[(stor[SEMVIS & SEMSC1]) . (chains & ithbsemsc1 & swg)]) . viswg1 . (rc[sref & ((swg & ithbsemsc1) . viswg1)])
+  visdv1 = (stor[SCOPEDEV]) . (rc[(stor[SEMVIS & SEMSC1]) . (chains & ithbsemsc1 & sqf)]) . visqf1 . (rc[sref & ((sqf & ithbsemsc1) . visqf1)])
+
+  vissg2 = (stor[SCOPESG+SCOPEWG+SCOPEQF+SCOPEDEV]) . (rc[((stor[SEMVIS & SEMSC2]) . po) + (sref & ((stor[R]) . po))]) . (stor[SC2 & R & NONPRIV])
+  viswg2 = (stor[SCOPEWG+SCOPEQF+SCOPEDEV]) . (rc[(stor[SEMVIS & SEMSC2]) . (chains & ithbsemsc2 & ssg)]) . vissg2 . (rc[sref & ((ssg & ithbsemsc2) . vissg2)])
+  visqf2 = (stor[SCOPEQF+SCOPEDEV]) . (rc[(stor[SEMVIS & SEMSC2]) . (chains & ithbsemsc2 & swg)]) . viswg2 . (rc[sref & ((swg & ithbsemsc2) . viswg2)])
+  visdv2 = (stor[SCOPEDEV]) . (rc[(stor[SEMVIS & SEMSC2]) . (chains & ithbsemsc2 & sqf)]) . visqf2 . (rc[sref & ((sqf & ithbsemsc2) . visqf2)])
+
+  vissg3 = (stor[SCOPESG+SCOPEWG+SCOPEQF+SCOPEDEV]) . (rc[((stor[SEMVIS & SEMSC3]) . po) + (sref & ((stor[R]) . po))]) . (stor[SC3 & R & NONPRIV])
+  viswg3 = (stor[SCOPEWG+SCOPEQF+SCOPEDEV]) . (rc[(stor[SEMVIS & SEMSC3]) . (chains & ithbsemsc3 & ssg)]) . vissg3 . (rc[sref & ((ssg & ithbsemsc3) . vissg3)])
+  visqf3 = (stor[SCOPEQF+SCOPEDEV]) . (rc[(stor[SEMVIS & SEMSC3]) . (chains & ithbsemsc3 & swg)]) . viswg3 . (rc[sref & ((swg & ithbsemsc3) . viswg3)])
+  visdv3 = (stor[SCOPEDEV]) . (rc[(stor[SEMVIS & SEMSC3]) . (chains & ithbsemsc3 & sqf)]) . visqf3 . (rc[sref & ((sqf & ithbsemsc3) . visqf3)])
+
+  schb = ((stor[SC0]) . ithbsemsc0) + ((stor[SC1]) . ithbsemsc1) + ((stor[SC2]) . ithbsemsc2) + ((stor[SC3]) . ithbsemsc3)
+  hbsc = (ithbsemsc0 . (stor[SC0])) + (ithbsemsc1 . (stor[SC1])) + (ithbsemsc2 . (stor[SC2])) + (ithbsemsc3 . (stor[SC3]))
+  schbsc = (ithbsemsc0 & (SC0 -> SC0)) + (ithbsemsc1 & (SC1 -> SC1)) + (ithbsemsc2 & (SC2 -> SC2)) + (ithbsemsc3 & (SC3 -> SC3))
+  schbsca = (ithbsemsc01 & ((SC0 -> SC1) + (SC1 -> SC0))) +
+              (ithbsemsc02 & ((SC0 -> SC1) + (SC1 -> SC0))) +
+              (ithbsemsc03 & ((SC0 -> SC1) + (SC1 -> SC0))) +
+              (ithbsemsc12 & ((SC0 -> SC1) + (SC1 -> SC0))) +
+              (ithbsemsc13 & ((SC0 -> SC1) + (SC1 -> SC0))) +
+              (ithbsemsc23 & ((SC0 -> SC1) + (SC1 -> SC0)))
+
+  locord = sloc & (
+    ((stor[R]) . ^ssw . (stor[R+W])) +
+    ((stor[W]) . schb . (stor[AVDEVICE]) . hbsc . (stor[W])) +
+    ((stor[W]) . schb . (stor[AVDEVICE]) . hb . (stor[VISDEVICE]) . hbsc . (stor[R])) +
+    ((stor[R&NONPRIV]) . (po + schbsc + schbsca) . (stor[(R+W)&NONPRIV])) +
+    (sref & (
+      ((po + schbsc) & sthd) +
+      ((stor[SC0&W&NONPRIV]) . avsg0 . (ithbsemsc0 & ssg) . (stor[SC0&W&NONPRIV])) +
+      ((stor[SC0&W&NONPRIV]) . avwg0 . (ithbsemsc0 & swg) . (stor[SC0&W&NONPRIV])) +
+      ((stor[SC0&W&NONPRIV]) . avqf0 . (ithbsemsc0 & sqf) . (stor[SC0&W&NONPRIV])) +
+      ((stor[SC0&W&NONPRIV]) . avdv0 . ithbsemsc0 . (stor[SC0&W&NONPRIV])) +
+      ((stor[SC1&W&NONPRIV]) . avsg1 . (ithbsemsc1 & ssg) . (stor[SC1&W&NONPRIV])) +
+      ((stor[SC1&W&NONPRIV]) . avwg1 . (ithbsemsc1 & swg) . (stor[SC1&W&NONPRIV])) +
+      ((stor[SC1&W&NONPRIV]) . avqf1 . (ithbsemsc1 & sqf) . (stor[SC1&W&NONPRIV])) +
+      ((stor[SC1&W&NONPRIV]) . avdv1 . ithbsemsc1 . (stor[SC1&W&NONPRIV])) +
+      ((stor[SC2&W&NONPRIV]) . avsg2 . (ithbsemsc2 & ssg) . (stor[SC2&W&NONPRIV])) +
+      ((stor[SC2&W&NONPRIV]) . avwg2 . (ithbsemsc2 & swg) . (stor[SC2&W&NONPRIV])) +
+      ((stor[SC2&W&NONPRIV]) . avqf2 . (ithbsemsc2 & sqf) . (stor[SC2&W&NONPRIV])) +
+      ((stor[SC2&W&NONPRIV]) . avdv2 . ithbsemsc2 . (stor[SC2&W&NONPRIV])) +
+      ((stor[SC3&W&NONPRIV]) . avsg3 . (ithbsemsc3 & ssg) . (stor[SC3&W&NONPRIV])) +
+      ((stor[SC3&W&NONPRIV]) . avwg3 . (ithbsemsc3 & swg) . (stor[SC3&W&NONPRIV])) +
+      ((stor[SC3&W&NONPRIV]) . avqf3 . (ithbsemsc3 & sqf) . (stor[SC3&W&NONPRIV])) +
+      ((stor[SC3&W&NONPRIV]) . avdv3 . ithbsemsc3 . (stor[SC3&W&NONPRIV])) +
+      ((stor[SC0&W&NONPRIV]) . avsg0 . (ithbsemsc0 & ssg) . vissg0 . (stor[SC0&R&NONPRIV])) +
+      ((stor[SC0&W&NONPRIV]) . avwg0 . (ithbsemsc0 & swg) . viswg0 . (stor[SC0&R&NONPRIV])) +
+      ((stor[SC0&W&NONPRIV]) . avqf0 . (ithbsemsc0 & sqf) . visqf0 . (stor[SC0&R&NONPRIV])) +
+      ((stor[SC0&W&NONPRIV]) . avdv0 . ithbsemsc0 . visdv0 . (stor[SC0&R&NONPRIV])) +
+      ((stor[SC1&W&NONPRIV]) . avsg1 . (ithbsemsc1 & ssg) . vissg1 . (stor[SC1&R&NONPRIV])) +
+      ((stor[SC1&W&NONPRIV]) . avwg1 . (ithbsemsc1 & swg) . viswg1 . (stor[SC1&R&NONPRIV])) +
+      ((stor[SC1&W&NONPRIV]) . avqf1 . (ithbsemsc1 & sqf) . visqf1 . (stor[SC1&R&NONPRIV])) +
+      ((stor[SC1&W&NONPRIV]) . avdv1 . ithbsemsc1 . visdv1 . (stor[SC1&R&NONPRIV])) +
+      ((stor[SC2&W&NONPRIV]) . avsg2 . (ithbsemsc2 & ssg) . vissg2 . (stor[SC2&R&NONPRIV])) +
+      ((stor[SC2&W&NONPRIV]) . avwg2 . (ithbsemsc2 & swg) . viswg2 . (stor[SC2&R&NONPRIV])) +
+      ((stor[SC2&W&NONPRIV]) . avqf2 . (ithbsemsc2 & sqf) . visqf2 . (stor[SC2&R&NONPRIV])) +
+      ((stor[SC2&W&NONPRIV]) . avdv2 . ithbsemsc2 . visdv2 . (stor[SC2&R&NONPRIV])) +
+      ((stor[SC3&W&NONPRIV]) . avsg3 . (ithbsemsc3 & ssg) . vissg3 . (stor[SC3&R&NONPRIV])) +
+      ((stor[SC3&W&NONPRIV]) . avwg3 . (ithbsemsc3 & swg) . viswg3 . (stor[SC3&R&NONPRIV])) +
+      ((stor[SC3&W&NONPRIV]) . avqf3 . (ithbsemsc3 & sqf) . visqf3 . (stor[SC3&R&NONPRIV])) +
+      ((stor[SC3&W&NONPRIV]) . avdv3 . ithbsemsc3 . visdv3 . (stor[SC3&R&NONPRIV]))
+  )))
 
   // From-read (aka reads-before) are (read,write) pairs where the read reads a
   // value before the write in atomic modification order or ordered writes to the same location
