@@ -348,78 +348,78 @@ sig Exec {
 
   ithbsemsc0 = ^(ssw +
                  (stor[SEMSC0]).sw.(stor[SEMSC0]) +
-                 (stor[SC0+SEMSC0]).po.(stor[REL&SEMSC0]) +
-                 (stor[ACQ&SEMSC0]).po.(stor[SC0+SEMSC0]))
+                 (stor[(SC0&NONPRIV)+SEMSC0]).po.(stor[REL&SEMSC0]) +
+                 (stor[ACQ&SEMSC0]).po.(stor[(SC0&NONPRIV)+SEMSC0]))
 
   ithbsemsc1 = ^(ssw +
                  (stor[SEMSC1]).sw.(stor[SEMSC1]) +
-                 (stor[SC1+SEMSC1]).po.(stor[REL&SEMSC1]) +
-                 (stor[ACQ&SEMSC1]).po.(stor[SC1+SEMSC1]))
+                 (stor[(SC1&NONPRIV)+SEMSC1]).po.(stor[REL&SEMSC1]) +
+                 (stor[ACQ&SEMSC1]).po.(stor[(SC1&NONPRIV)+SEMSC1]))
 
   ithbsemsc2 = ^(ssw +
                  (stor[SEMSC2]).sw.(stor[SEMSC2]) +
-                 (stor[SC2+SEMSC2]).po.(stor[REL&SEMSC2]) +
-                 (stor[ACQ&SEMSC2]).po.(stor[SC2+SEMSC2]))
+                 (stor[(SC2&NONPRIV)+SEMSC2]).po.(stor[REL&SEMSC2]) +
+                 (stor[ACQ&SEMSC2]).po.(stor[(SC2&NONPRIV)+SEMSC2]))
 
   ithbsemsc3 = ^(ssw +
                  (stor[SEMSC3]).sw.(stor[SEMSC3]) +
-                 (stor[SC3+SEMSC3]).po.(stor[REL&SEMSC3]) +
-                 (stor[ACQ&SEMSC3]).po.(stor[SC3+SEMSC3]))
+                 (stor[(SC3&NONPRIV)+SEMSC3]).po.(stor[REL&SEMSC3]) +
+                 (stor[ACQ&SEMSC3]).po.(stor[(SC3&NONPRIV)+SEMSC3]))
 
   ithbsemsc01 = ^(ssw +
                   (stor[SEMSC01]).sw.(stor[SEMSC01]) +
-                  (stor[SC0+SC1+SEMSC01]).po.(stor[REL&SEMSC01]) +
-                  (stor[ACQ&SEMSC01]).po.(stor[SC0+SC1+SEMSC01]))
+                  (stor[((SC0+SC1)&NONPRIV)+SEMSC01]).po.(stor[REL&SEMSC01]) +
+                  (stor[ACQ&SEMSC01]).po.(stor[((SC0+SC1)&NONPRIV)+SEMSC01]))
 
   ithbsemsc02 = ^(ssw +
                   (stor[SEMSC02]).sw.(stor[SEMSC02]) +
-                  (stor[SC0+SC2+SEMSC02]).po.(stor[REL&SEMSC02]) +
-                  (stor[ACQ&SEMSC02]).po.(stor[SC0+SC2+SEMSC02]))
+                  (stor[((SC0+SC2)&NONPRIV)+SEMSC02]).po.(stor[REL&SEMSC02]) +
+                  (stor[ACQ&SEMSC02]).po.(stor[((SC0+SC2)&NONPRIV)+SEMSC02]))
 
   ithbsemsc03 = ^(ssw +
                   (stor[SEMSC03]).sw.(stor[SEMSC03]) +
-                  (stor[SC0+SC3+SEMSC03]).po.(stor[REL&SEMSC03]) +
-                  (stor[ACQ&SEMSC03]).po.(stor[SC0+SC3+SEMSC03]))
+                  (stor[((SC0+SC3)&NONPRIV)+SEMSC03]).po.(stor[REL&SEMSC03]) +
+                  (stor[ACQ&SEMSC03]).po.(stor[((SC0+SC3)&NONPRIV)+SEMSC03]))
 
   ithbsemsc12 = ^(ssw +
                   (stor[SEMSC12]).sw.(stor[SEMSC12]) +
-                  (stor[SC1+SC2+SEMSC12]).po.(stor[REL&SEMSC12]) +
-                  (stor[ACQ&SEMSC12]).po.(stor[SC1+SC2+SEMSC12]))
+                  (stor[((SC1+SC2)&NONPRIV)+SEMSC12]).po.(stor[REL&SEMSC12]) +
+                  (stor[ACQ&SEMSC12]).po.(stor[((SC1+SC2)&NONPRIV)+SEMSC12]))
 
   ithbsemsc13 = ^(ssw +
                   (stor[SEMSC13]).sw.(stor[SEMSC13]) +
-                  (stor[SC1+SC3+SEMSC13]).po.(stor[REL&SEMSC13]) +
-                  (stor[ACQ&SEMSC13]).po.(stor[SC1+SC3+SEMSC13]))
+                  (stor[((SC1+SC3)&NONPRIV)+SEMSC13]).po.(stor[REL&SEMSC13]) +
+                  (stor[ACQ&SEMSC13]).po.(stor[((SC1+SC3)&NONPRIV)+SEMSC13]))
 
   ithbsemsc23 = ^(ssw +
                   (stor[SEMSC23]).sw.(stor[SEMSC23]) +
-                  (stor[SC2+SC3+SEMSC23]).po.(stor[REL&SEMSC23]) +
-                  (stor[ACQ&SEMSC23]).po.(stor[SC2+SC3+SEMSC23]))
+                  (stor[((SC2+SC3)&NONPRIV)+SEMSC23]).po.(stor[REL&SEMSC23]) +
+                  (stor[ACQ&SEMSC23]).po.(stor[((SC2+SC3)&NONPRIV)+SEMSC23]))
 
   ithbsemsc012 = ^(ssw +
                   (stor[SEMSC012]).sw.(stor[SEMSC012]) +
-                  (stor[SC0+SC1+SC2+SEMSC012]).po.(stor[REL&SEMSC012]) +
-                  (stor[ACQ&SEMSC012]).po.(stor[SC0+SC1+SC2+SEMSC012]))
+                  (stor[((SC0+SC1+SC2)&NONPRIV)+SEMSC012]).po.(stor[REL&SEMSC012]) +
+                  (stor[ACQ&SEMSC012]).po.(stor[((SC0+SC1+SC2)&NONPRIV)+SEMSC012]))
 
   ithbsemsc013 = ^(ssw +
                   (stor[SEMSC013]).sw.(stor[SEMSC013]) +
-                  (stor[SC0+SC1+SC3+SEMSC013]).po.(stor[REL&SEMSC013]) +
-                  (stor[ACQ&SEMSC013]).po.(stor[SC0+SC1+SC3+SEMSC013]))
+                  (stor[((SC0+SC1+SC3)&NONPRIV)+SEMSC013]).po.(stor[REL&SEMSC013]) +
+                  (stor[ACQ&SEMSC013]).po.(stor[((SC0+SC1+SC3)&NONPRIV)+SEMSC013]))
 
   ithbsemsc023 = ^(ssw +
                   (stor[SEMSC023]).sw.(stor[SEMSC023]) +
-                  (stor[SC0+SC2+SC3+SEMSC023]).po.(stor[REL&SEMSC023]) +
-                  (stor[ACQ&SEMSC023]).po.(stor[SC0+SC2+SC3+SEMSC023]))
+                  (stor[((SC0+SC2+SC3)&NONPRIV)+SEMSC023]).po.(stor[REL&SEMSC023]) +
+                  (stor[ACQ&SEMSC023]).po.(stor[((SC0+SC2+SC3)&NONPRIV)+SEMSC023]))
 
   ithbsemsc123 = ^(ssw +
                   (stor[SEMSC123]).sw.(stor[SEMSC123]) +
-                  (stor[SC1+SC2+SC3+SEMSC123]).po.(stor[REL&SEMSC123]) +
-                  (stor[ACQ&SEMSC123]).po.(stor[SC1+SC2+SC3+SEMSC123]))
+                  (stor[((SC1+SC2+SC3)&NONPRIV)+SEMSC123]).po.(stor[REL&SEMSC123]) +
+                  (stor[ACQ&SEMSC123]).po.(stor[((SC1+SC2+SC3)&NONPRIV)+SEMSC123]))
 
   ithbsemsc0123 = ^(ssw +
                   (stor[SEMSC0123]).sw.(stor[SEMSC0123]) +
-                  (stor[SC0+SC1+SC2+SC3+SEMSC0123]).po.(stor[REL&SEMSC0123]) +
-                  (stor[ACQ&SEMSC0123]).po.(stor[SC0+SC1+SC2+SC3+SEMSC0123]))
+                  (stor[((SC0+SC1+SC2+SC3)&NONPRIV)+SEMSC0123]).po.(stor[REL&SEMSC0123]) +
+                  (stor[ACQ&SEMSC0123]).po.(stor[((SC0+SC1+SC2+SC3)&NONPRIV)+SEMSC0123]))
 
   // happens-before = ithb<SC> or program order
   hb = ithbsemsc0 + ithbsemsc1 + ithbsemsc2 + ithbsemsc3 +
