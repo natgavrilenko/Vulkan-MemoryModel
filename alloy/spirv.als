@@ -94,6 +94,7 @@ sig Exec {
 
   // dynamic relations established at runtime
   rf : E->E, // reads-from
+  co : E->E, // coherence order
   asmo: E->E, // A's scoped modification order
   rs : E->E, // release sequence
   hypors : E->E, // hypothetical release sequence
@@ -273,8 +274,9 @@ sig Exec {
   // A's scoped modification order:
   // - must be a strict partial order
   // - must relate all mutually ordered atomic writes at the same location
-  strict_partial_order[asmo]
-  rai[asmo] = ((A&W) -> (A&W)) & mutordatom
+  strict_partial_order[co]
+  rai[co] = (sloc & (W -> W)) - iden
+  asmo = co & mutordatom
 
   // Release sequence starts with an atomic release followed by the reflexive
   // transitive closure of immediate asmo limited to RMWs. Leaving out C++'s
