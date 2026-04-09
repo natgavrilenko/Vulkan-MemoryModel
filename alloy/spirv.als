@@ -98,7 +98,7 @@ sig Exec {
   asmo: E->E, // A's scoped modification order
   rs : E->E, // release sequence
   hypors : E->E, // hypothetical release sequence
-  fr: E->E, // from-read
+  fr, sfr: E->E, // from-read
   sw: E->E, // synchronizes-with
   ithbsemsc0, ithbsemsc1, ithbsemsc2, ithbsemsc3 : E->E,
   ithbsemsc01, ithbsemsc02, ithbsemsc03, ithbsemsc12, ithbsemsc13, ithbsemsc23 : E->E,
@@ -438,17 +438,17 @@ sig Exec {
   hbsc = (ithbsemsc0 . (stor[SC0])) + (ithbsemsc1 . (stor[SC1])) + (ithbsemsc2 . (stor[SC2])) + (ithbsemsc3 . (stor[SC3]))
   schbsc = (ithbsemsc0 & (SC0 -> SC0)) + (ithbsemsc1 & (SC1 -> SC1)) + (ithbsemsc2 & (SC2 -> SC2)) + (ithbsemsc3 & (SC3 -> SC3))
   schbsca = (ithbsemsc01 & ((SC0 -> SC1) + (SC1 -> SC0))) +
-              (ithbsemsc02 & ((SC0 -> SC1) + (SC1 -> SC0))) +
-              (ithbsemsc03 & ((SC0 -> SC1) + (SC1 -> SC0))) +
-              (ithbsemsc12 & ((SC0 -> SC1) + (SC1 -> SC0))) +
-              (ithbsemsc13 & ((SC0 -> SC1) + (SC1 -> SC0))) +
-              (ithbsemsc23 & ((SC0 -> SC1) + (SC1 -> SC0)))
+              (ithbsemsc02 & ((SC0 -> SC2) + (SC2 -> SC0))) +
+              (ithbsemsc03 & ((SC0 -> SC3) + (SC3 -> SC0))) +
+              (ithbsemsc12 & ((SC1 -> SC2) + (SC2 -> SC1))) +
+              (ithbsemsc13 & ((SC1 -> SC3) + (SC3 -> SC1))) +
+              (ithbsemsc23 & ((SC2 -> SC3) + (SC3 -> SC2)))
 
   locord = sloc & (
-    ((stor[R]) . ^ssw . (stor[W])) +
+    ((stor[R]) . ^ssw . (stor[R+W])) +
     ((stor[W]) . schb . (stor[AVDEVICE]) . hbsc . (stor[W])) +
     ((stor[W]) . schb . (stor[AVDEVICE]) . hb . (stor[VISDEVICE]) . hbsc . (stor[R])) +
-    ((stor[R&NONPRIV]) . (schbsc + schbsca) . (stor[W&NONPRIV])) +
+    ((stor[R&NONPRIV]) . (schbsc + schbsca) . (stor[(R+W)&NONPRIV])) +
     (sref & (
       ((po + schbsc) & sthd) +
       ((stor[SC0&W&NONPRIV]) . avsg0 . (ithbsemsc0 & ssg) . (stor[SC0&W&NONPRIV])) +
@@ -489,7 +489,8 @@ sig Exec {
   // value before the write in atomic modification order or ordered writes to the same location
   // (i.e. the inverse of reads-from joined with asmo or locord).
   // For reads that read-from init, they from-read all writes at the same location.
-  fr = (~rf . ((W -> W) & locord)) + (~rf . asmo) + ((stor[RFINIT]) . sloc . (stor[W])) - iden
+  fr = (~rf . co) + ((stor[RFINIT]) . sloc . (stor[W])) - iden
+  sfr = (~rf . asmo) + ((stor[RFINIT]) . sloc . (stor[W])) - iden
 
   // data race = same location, at least one is a write, not equal,
   // not mutually ordered atomics, not location ordered either direction
@@ -500,11 +501,17 @@ sig Exec {
 }
 
 pred consistent[X:Exec] {
-  // consistency: locord, rf, fr, asmo must not form cycles
-  is_acyclic[X.locord + X.rf + X.fr + X.asmo]
+  // consistency: locord, rf, sfr, asmo must not form cycles
+  is_acyclic[X.locord + X.rf + X.sfr + X.asmo]
 
-  // consistency: non-atomic cannot read-from a value that is shadowed by another write
-  no (X.rf . (stor[X.R - X.A])) & twoplus[stor[X.W] . (X.locord)]
+  // consistency: load cannot read-from a value that is shadowed by another write
+  no X.rf & twoplus[stor[X.W] . (X.locord)]
+
+  // consistency: coherence order
+  no (((X.W) -> (X.W)) & (X.locord)) - (X.co)
+
+  // consistency: atomic
+  no (iden & ((X.fr) . (X.co)))
 }
 
 pred racefree[X:Exec] {
